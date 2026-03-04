@@ -11,7 +11,7 @@ urlpatterns = [
     path('refresh', TokenRefreshView.as_view(), name='auth-refresh'),
     path('me', ProfileView.as_view(), name='auth-me'),
     path('change-password', ChangePasswordView.as_view(), name='auth-change-password'),
-    path('notifications', NotificationListView.as_view(), name='auth-notifications'),
-    path('notifications/<int:notif_id>/read', NotificationReadView.as_view(), name='auth-notification-read'),
-    path('notifications/read-all', NotificationReadAllView.as_view(), name='auth-notifications-read-all'),
+    path('notifications/', NotificationListView.as_view(), name='auth-notifications'),
+    path('notifications/read-all/', NotificationReadAllView.as_view(), name='auth-notifications-read-all'),
+    path('notifications/<int:notif_id>/read/', NotificationReadView.as_view(), name='auth-notification-read'),
 ]

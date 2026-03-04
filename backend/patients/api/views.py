@@ -103,6 +103,16 @@ class PatientDoctorSlotsView(APIView):
         
         booked_times = {a.slot_time.strftime('%H:%M') for a in booked_appointments}
 
+        # Also mark slots where the patient ALREADY has an appointment as unavailable
+        patient = get_patient(request.user)
+        if patient:
+            patient_appointments = Appointment.objects.filter(
+                patient=patient,
+                appointment_date=appt_date
+            ).exclude(status='cancelled')
+            for pa in patient_appointments:
+                booked_times.add(pa.slot_time.strftime('%H:%M'))
+
         current = start
         while current < end:
             slot_str = current.strftime('%H:%M')
@@ -154,6 +164,16 @@ class PatientAppointmentView(APIView):
         if existing:
             return Response({'message': 'This slot is already booked'}, status=status.HTTP_409_CONFLICT)
 
+        # CHECK: Does the patient already have another appointment at this same time?
+        patient_existing = Appointment.objects.filter(
+            patient=patient,
+            appointment_date=appt_date,
+            slot_time=slot_time
+        ).exclude(status='cancelled').first()
+
+        if patient_existing:
+            return Response({'message': 'You already have another appointment at this time'}, status=status.HTTP_409_CONFLICT)
+
         appt = Appointment.objects.create(
             patient=patient,
             doctor_id=doctor_id,
@@ -179,6 +199,23 @@ class PatientAppointmentView(APIView):
             )
         except Exception as e:
             print("Failed to create notification for doctor:", str(e))
+            
+        # Generate Notifications for Admins
+        try:
+            admins = User.objects.filter(role='admin', is_active=True)
+            admin_notifications = [
+                Notification(
+                    user=admin,
+                    title="New Appointment Booking",
+                    message=f"A new appointment has been scheduled by {patient.user.name} with Dr. {appt.doctor.user.name} for {appt_date.strftime('%b %d, %Y')} at {slot_time.strftime('%I:%M %p')}.",
+                    type="appointment",
+                    related_id=appt.id
+                ) for admin in admins
+            ]
+            if admin_notifications:
+                Notification.objects.bulk_create(admin_notifications)
+        except Exception as e:
+            print("Failed to create notifications for admins:", str(e))
         
         return Response(AppointmentSerializer(appt).data, status=status.HTTP_201_CREATED)
 
