@@ -1,0 +1,9 @@
+{
+    "python.analysis.extraPaths": [
+        "./backend"
+    ],
+    "python.defaultInterpreterPath": "./backend/venv/bin/python",
+    "css.validate": false,
+    "less.validate": false,
+    "scss.validate": false
+}
